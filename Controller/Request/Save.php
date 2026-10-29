@@ -14,8 +14,7 @@ use Magento\Framework\Controller\Result\RedirectFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Message\ManagerInterface;
 use Zero\Returns\Model\Config;
-use Zero\Returns\Model\Eligibility;
-use Zero\Returns\Model\Mailer;
+use Zero\Returns\Model\ReturnRequest;
 use Zero\Returns\Model\Returns;
 use Zero\Returns\ViewModel\Storefront;
 
@@ -32,9 +31,6 @@ class Save implements HttpPostActionInterface
         private readonly RedirectFactory $redirectFactory,
         private readonly ManagerInterface $messageManager,
         private readonly Storefront $storefront,
-        private readonly Eligibility $eligibility,
-        private readonly Returns $returns,
-        private readonly Mailer $mailer,
         private readonly Config $config
     ) {
     }
@@ -47,49 +43,17 @@ class Save implements HttpPostActionInterface
             return $redirect->setPath('sales/order/history');
         }
         try {
-            if (!$this->eligibility->canRequest($order)) {
-                throw new LocalizedException(__('This order has nothing left to return, or its return window has passed.'));
-            }
-            $returnable = $this->eligibility->returnable($order);
-            $reasons = $this->config->reasons((int) $order->getStoreId());
-            $items = [];
+            $quantities = [];
             foreach ((array) $this->request->getParam('items', []) as $orderItemId => $qty) {
-                $orderItemId = (int) $orderItemId;
-                $qty = (float) str_replace(',', '.', (string) $qty);
-                if ($qty <= 0 || !isset($returnable[$orderItemId])) {
-                    continue;
-                }
-                $line = $returnable[$orderItemId];
-                if ($qty > $line['qty']) {
-                    throw new LocalizedException(__('Only %1 of %2 can be returned.', $line['qty'] + 0, $line['item']->getName()));
-                }
-                $reason = trim((string) ($this->request->getParam('reason')[$orderItemId] ?? ''));
-                if ($reasons && !in_array($reason, $reasons, true)) {
-                    throw new LocalizedException(__('Pick a reason for %1.', $line['item']->getName()));
-                }
-                $items[] = [
-                    'order_item_id' => $orderItemId,
-                    'sku' => (string) $line['item']->getSku(),
-                    'name' => (string) $line['item']->getName(),
-                    'qty' => $qty,
-                    'reason' => $reason,
-                ];
+                $quantities[(int) $orderItemId] = (float) str_replace(',', '.', (string) $qty);
             }
-            if (!$items) {
-                throw new LocalizedException(__('Pick at least one item to return.'));
-            }
-            $resolution = (string) $this->request->getParam('resolution', Returns::REFUND);
-            $return = $this->returns->create([
-                'order_id' => (int) $order->getEntityId(),
-                'order_increment_id' => (string) $order->getIncrementId(),
-                'store_id' => (int) $order->getStoreId(),
-                'customer_id' => (int) $order->getCustomerId(),
-                'customer_name' => trim($order->getCustomerFirstname() . ' ' . $order->getCustomerLastname()),
-                'customer_email' => (string) $order->getCustomerEmail(),
-                'resolution' => in_array($resolution, Returns::RESOLUTIONS, true) ? $resolution : Returns::REFUND,
-                'comment' => mb_substr(trim((string) $this->request->getParam('comment')), 0, 4000) ?: null,
-            ], $items);
-            $this->mailer->newRequest($return);
+            $return = $this->returnRequest->create(
+                $order,
+                $quantities,
+                array_map('strval', (array) $this->request->getParam('reason', [])),
+                (string) $this->request->getParam('resolution', Returns::REFUND),
+                (string) $this->request->getParam('comment')
+            );
             $this->messageManager->addSuccessMessage(__('Your return request %1 is sent. We review it and email you.', Returns::number($return)));
 
             return $redirect->setPath('returns/view/index', ['id' => (int) $return['return_id']]);
