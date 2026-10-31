@@ -40,7 +40,8 @@ class Comment implements HttpPostActionInterface
         if (!$return) {
             return $this->redirectFactory->create()->setPath('returns/account/index');
         }
-        $text = mb_substr(trim((string) $this->request->getParam('text')), 0, 4000);
+        $text = $this->request->getParam('text');
+        $text = mb_substr(trim(is_scalar($text) ? (string) $text : ''), 0, 4000);
         if ($text === '' || !Returns::isOpen($return)) {
             $this->messageManager->addErrorMessage(__('Write something first; a closed return can\'t be commented on.'));
         } else {

@@ -54,6 +54,10 @@ the store (also used for a customer's message), a receipt to the customer,
 and a status/message email to the customer. The approval email carries the
 return instructions from configuration.
 
+Webhook events `zero_returns_*` reach Zero_Webhooks: `etc/di.xml` gives
+`Model\Returns` its event manager (an optional constructor argument that
+nothing configured was never injected before).
+
 ## Configuration
 
 Enabled, Return Window (days from the order date), Reasons (one per line),
@@ -67,6 +71,8 @@ templates.
 - `dev/tests/zero-e2e/tests/returns-admin.spec.ts`: a customer's order is
   shipped in the admin, the customer requests a return, the store approves
   it, the customer sees the status.
+
+What changed in each release: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

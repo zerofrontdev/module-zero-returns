@@ -31,7 +31,8 @@ class Save implements HttpPostActionInterface
         private readonly RedirectFactory $redirectFactory,
         private readonly ManagerInterface $messageManager,
         private readonly Storefront $storefront,
-        private readonly Config $config
+        private readonly Config $config,
+        private readonly ReturnRequest $returnRequest
     ) {
     }
 
@@ -45,14 +46,16 @@ class Save implements HttpPostActionInterface
         try {
             $quantities = [];
             foreach ((array) $this->request->getParam('items', []) as $orderItemId => $qty) {
-                $quantities[(int) $orderItemId] = (float) str_replace(',', '.', (string) $qty);
+                $quantities[(int) $orderItemId] = (float) str_replace(',', '.', is_scalar($qty) ? (string) $qty : '0');
             }
+            $resolution = $this->request->getParam('resolution', Returns::REFUND);
+            $comment = $this->request->getParam('comment');
             $return = $this->returnRequest->create(
                 $order,
                 $quantities,
-                array_map('strval', (array) $this->request->getParam('reason', [])),
-                (string) $this->request->getParam('resolution', Returns::REFUND),
-                (string) $this->request->getParam('comment')
+                array_map('strval', array_filter((array) $this->request->getParam('reason', []), 'is_scalar')),
+                is_scalar($resolution) ? (string) $resolution : Returns::REFUND,
+                is_scalar($comment) ? (string) $comment : ''
             );
             $this->messageManager->addSuccessMessage(__('Your return request %1 is sent. We review it and email you.', Returns::number($return)));
 

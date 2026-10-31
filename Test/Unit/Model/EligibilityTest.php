@@ -56,10 +56,10 @@ class EligibilityTest extends TestCase
      */
     private function eligibility(array $inReturns): Eligibility
     {
-        $scopeConfig = $this->createMock(ScopeConfigInterface::class);
+        $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('isSetFlag')->willReturn(true);
         $scopeConfig->method('getValue')->willReturnCallback(static fn (string $path) => str_ends_with($path, 'window_days') ? '30' : '');
-        $returns = $this->createMock(Returns::class);
+        $returns = $this->createStub(Returns::class);
         $returns->method('quantitiesInReturns')->willReturn(array_combine(array_map('intval', array_keys($inReturns)), $inReturns));
 
         return new Eligibility(new Config($scopeConfig), $returns);
@@ -67,7 +67,7 @@ class EligibilityTest extends TestCase
 
     private function item(int $id, float $shipped, float $refunded): Item
     {
-        $item = $this->createMock(Item::class);
+        $item = $this->createStub(Item::class);
         $item->method('getItemId')->willReturn($id);
         $item->method('getQtyShipped')->willReturn($shipped);
         $item->method('getQtyRefunded')->willReturn($refunded);
@@ -80,7 +80,7 @@ class EligibilityTest extends TestCase
      */
     private function order(array $items, string $state = Order::STATE_COMPLETE): Order
     {
-        $order = $this->createMock(Order::class);
+        $order = $this->createStub(Order::class);
         $order->method('getStoreId')->willReturn(1);
         $order->method('getEntityId')->willReturn(100);
         $order->method('getState')->willReturn($state);
