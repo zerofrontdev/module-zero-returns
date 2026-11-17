@@ -72,6 +72,8 @@ templates.
   shipped in the admin, the customer requests a return, the store approves
   it, the customer sees the status.
 
+AI Assistant tools for this module: the bridge module `Zero_ReturnsAiAssistant` (needs Zero_AiAssistant too).
+
 What changed in each release: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
